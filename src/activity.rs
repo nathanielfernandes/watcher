@@ -60,11 +60,16 @@ pub struct DiscordActivity {
     pub details: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub hover_text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub asset_url: Option<String>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub start_time: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub end_time: Option<u64>,
 }
 
@@ -108,6 +113,7 @@ impl From<Activity> for DiscordActivity {
         DiscordActivity {
             name: activity.name,
             details: activity.details,
+            state: activity.state,
 
             kind: match activity.kind {
                 ActivityType::Playing => "playing",
