@@ -20,6 +20,13 @@ static ALLOW_LIST: Lazy<Vec<u64>> = Lazy::new(|| {
         .collect()
 });
 
+static SERVER: Lazy<u64> = Lazy::new(|| {
+    env::var("SERVER")
+        .expect("Expected a server ID in the environment")
+        .parse::<u64>()
+        .expect("Expected a server ID in the environment")
+});
+
 static CACHE: Lazy<Cache<u64, Vec<DiscordActivity>>> = Lazy::new(|| {
     Cache::builder()
         .time_to_live(std::time::Duration::from_secs(3600))
@@ -145,6 +152,10 @@ impl EventHandler for Handler {
         let user_id = presence.user.id.0;
 
         if let Some(tx) = CHANNELS.1.get(&user_id) {
+            if presence.guild_id.unwrap_or_default().0 != *SERVER {
+                return;
+            }
+
             let activites = presence
                 .activities
                 .into_iter()

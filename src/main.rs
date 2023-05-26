@@ -73,15 +73,15 @@ async fn live_activity(
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Response<Body>> {
     if let Some(rx) = activity::get_live_activity(user_id) {
         Ok(Sse::new(stream! {
-            let mut last = None;
-
+            // let mut last = None;
             loop {
                 match rx.recv().await {
                     Ok(activity) => {
-                        if last.is_none() || last.unwrap() != activity {
-                            yield Ok(Event::default().json_data(activity.clone()).expect("failed to serialize json"));
-                        }
-                        last = Some(activity);
+                    //     if last.is_none() || last.unwrap() != activity {
+                    //         yield Ok(Event::default().json_data(activity.clone()).expect("failed to serialize json"));
+                    //     }
+                    //     last = Some(activity);
+                        yield Ok(Event::default().json_data(activity).expect("failed to serialize json"));
                     }
                     Err(_) => {
                         break;
