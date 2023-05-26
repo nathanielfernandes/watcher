@@ -74,6 +74,9 @@ async fn live_activity(
     if let Some(rx) = activity::get_live_activity(user_id) {
         Ok(Sse::new(stream! {
             // let mut last = None;
+
+            yield Ok(Event::default().json_data(activity::get_activity(user_id)).expect("failed to serialize json"));
+
             loop {
                 match rx.recv().await {
                     Ok(activity) => {
