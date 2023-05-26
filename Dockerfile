@@ -15,7 +15,6 @@ RUN git config --global url."https://api:$MY_GIT_TOKEN@github.com/".insteadOf "h
 # copy over your manifests
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
-COPY ./.cargo ./.cargo
 
 RUN mkdir src && echo "fn main() {}" > src/main.rs && echo "\n" > src/lib.rs
 
