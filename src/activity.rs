@@ -135,6 +135,7 @@ impl From<Activity> for BaseActivity {
 pub struct SpotifyActivity {
     pub album: String,
     pub album_cover_url: String,
+    pub share_cover_url: String,
     pub artist: String,
     pub artists: Vec<String>,
     pub title: String,
@@ -174,6 +175,7 @@ impl From<Activity> for SpotifyActivity {
 
         let title = activity.details.unwrap_or_default();
         let track_id = activity.sync_id.unwrap_or_default();
+        let share_cover_url = format!("https://spv.ncp.nathanferns.xyz/{}", &track_id);
         let track_url = format!("https://open.spotify.com/track/{}", &track_id);
         let start = activity
             .timestamps
@@ -189,6 +191,7 @@ impl From<Activity> for SpotifyActivity {
         SpotifyActivity {
             album,
             album_cover_url,
+            share_cover_url,
             artist,
             artists,
             title,
