@@ -32,6 +32,9 @@ pub struct Assets {
     pub small_image: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub small_text: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detecable_icon: Option<String>,
 }
 
 #[allow(non_camel_case_types)]
@@ -96,6 +99,7 @@ impl From<Activity> for BaseActivity {
                 .small_image
                 .and_then(|url| fix_url(&url, &application_id)),
             small_text: assets.small_text,
+            detecable_icon: None,
         });
 
         let details = activity.details;
