@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
-    Mutex, RwLock,
+    RwLock,
 };
 
 #[derive(Clone)]
@@ -11,14 +11,14 @@ struct EventSourceInner<T> {
 }
 
 #[derive(Clone)]
-pub struct EventSource<T>(Arc<Mutex<EventSourceInner<T>>>);
+pub struct EventSource<T>(Arc<RwLock<EventSourceInner<T>>>);
 
 impl<T> EventSource<T>
 where
     T: Clone,
 {
     pub fn new() -> Self {
-        Self(Arc::new(Mutex::new(EventSourceInner {
+        Self(Arc::new(RwLock::new(EventSourceInner {
             subscribers: Vec::new(),
             last_event: None,
         })))
@@ -27,7 +27,7 @@ where
     pub async fn subscribe(&self) -> (UnboundedReceiver<T>, Option<T>) {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let mut inner = self.0.lock().await;
+        let mut inner = self.0.write().await;
 
         inner.subscribers.push(tx);
 
@@ -35,21 +35,28 @@ where
     }
 
     pub async fn last_event(&self) -> Option<T> {
-        self.0.lock().await.last_event.clone()
+        self.0.read().await.last_event.clone()
     }
 
     pub async fn publish(&self, event: T) {
-        let mut inner = self.0.lock().await;
+        // only read lock while pushing to subscribers
+        let mut not_ok = Vec::new();
+        for (i, tx) in self.0.read().await.subscribers.iter().enumerate() {
+            if tx.send(event.clone()).is_err() {
+                not_ok.push(i);
+            }
+        }
 
-        inner
-            .subscribers
-            .retain(|tx| tx.send(event.clone()).is_ok());
-
-        inner.last_event = Some(event.clone());
+        // write lock to remove subscribers
+        // in reverse order to not invalidate indices
+        let mut inner = self.0.write().await;
+        for i in not_ok.into_iter().rev() {
+            inner.subscribers.swap_remove(i);
+        }
+        inner.last_event = Some(event);
     }
 }
 
-#[derive(Clone)]
 pub struct DispatcherInner<K, V>
 where
     V: Clone,
@@ -74,49 +81,34 @@ where
     }
 
     pub async fn subscribe(&self, key: K) -> (UnboundedReceiver<V>, Option<V>) {
-        let res = {
-            let inner = self.0.read().await;
-
-            if let Some(source) = inner.sources.get(&key) {
-                Some(source.subscribe().await)
-            } else {
-                None
-            }
+        if let Some(source) = self.0.read().await.sources.get(&key) {
+            return source.subscribe().await;
         };
 
-        match res {
-            Some((rx, last_event)) => (rx, last_event),
-            None => {
-                let source = EventSource::new();
-                let (rx, last_event) = source.subscribe().await;
+        let source = EventSource::new();
+        let (rx, last_event) = source.subscribe().await;
 
-                let mut inner = self.0.write().await;
-                inner.sources.insert(key, source);
+        let mut inner = self.0.write().await;
+        inner.sources.insert(key, source);
 
-                (rx, last_event)
-            }
-        }
+        (rx, last_event)
     }
 
     pub async fn publish(&self, key: K, event: V) {
-        let mut inner = self.0.write().await;
-
-        if let Some(source) = inner.sources.get(&key) {
-            source.publish(event).await;
-        } else {
-            let source = EventSource::new();
-            source.publish(event).await;
-            inner.sources.insert(key, source);
+        if let Some(source) = self.0.read().await.sources.get(&key) {
+            return source.publish(event).await;
         }
+
+        let source = EventSource::new();
+        source.publish(event).await;
+        self.0.write().await.sources.insert(key, source);
     }
 
     pub async fn last_event(&self, key: K) -> Option<V> {
-        let inner = self.0.read().await;
-
-        if let Some(source) = inner.sources.get(&key) {
-            source.last_event().await
-        } else {
-            None
+        if let Some(source) = self.0.read().await.sources.get(&key) {
+            return source.last_event().await;
         }
+
+        None
     }
 }
