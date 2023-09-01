@@ -3,5 +3,5 @@
 export type ActivityType = "playing" | "streaming" | "listening" | "watching" | "custom" | "unknown";
 export type Assets = { large_image?: string | null; large_text?: string | null; small_image?: string | null; small_text?: string | null };
 export type BaseActivity = { application_id?: string | null; assets?: Assets | null; details?: string | null; type: ActivityType; name: string; state?: string | null; start_time?: number | null; end_time?: number | null };
-export type SpotifyActivity = { album: string; album_cover_url: string; artist: string; artists: string[]; title: string; track_id: string; track_url: string; start: number; end: number; duration: number };
+export type SpotifyActivity = { album: string; album_cover_url: string; share_cover_url: string; artist: string; artists: string[]; title: string; track_id: string; track_url: string; start: number; end: number; duration: number };
 export type DiscordActivity = { type: "Activity"; activity: BaseActivity } | { type: "Spotify"; activity: SpotifyActivity };
