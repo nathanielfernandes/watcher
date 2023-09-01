@@ -2,6 +2,9 @@
 
 a simple discord presence watcher that can be listened to via server sent events
 
+**example usage on my website:**
+![example](https://cdn.discordapp.com/attachments/1143578217911951491/1147170397180153907/image.png)
+
 ## Usage
 
 join the discord server https://discord.gg/TnJPMdMDQZ
