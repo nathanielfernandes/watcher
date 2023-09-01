@@ -1,12 +1,12 @@
 # watcher
 
-a simple discord presence watcher that can be listend to via server sent events
+a simple discord presence watcher that can be listened to via server sent events
 
 ## Usage
 
 join the discord server https://discord.gg/TnJPMdMDQZ
 
-**if you want your live acitivy:**
+**if you want your live activity:**
 `https://watcher.ncp.nathanferns.xyz/live-activity/<your discord id>`
 
 **if you want grab just your current status:**
