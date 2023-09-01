@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use serenity::model::prelude::Activity;
 use specta::Type;
 
-#[derive(Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
+use crate::detectable::{Detectable, DETECABLES};
+
+#[derive(Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum DiscordActivity {
     Activity { activity: BaseActivity },
@@ -32,9 +34,6 @@ pub struct Assets {
     pub small_image: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub small_text: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub detecable_icon: Option<String>,
 }
 
 #[allow(non_camel_case_types)]
@@ -48,7 +47,7 @@ pub enum ActivityType {
     unknown,
 }
 
-#[derive(Type, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Type, Debug, Clone, Serialize, Deserialize)]
 pub struct BaseActivity {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub application_id: Option<String>,
@@ -69,6 +68,9 @@ pub struct BaseActivity {
     pub start_time: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_time: Option<u32>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detectable: Option<Detectable>,
 }
 
 fn fix_url(url: &str, app_id: &Option<String>) -> Option<String> {
@@ -99,7 +101,6 @@ impl From<Activity> for BaseActivity {
                 .small_image
                 .and_then(|url| fix_url(&url, &application_id)),
             small_text: assets.small_text,
-            detecable_icon: None,
         });
 
         let details = activity.details;
@@ -118,6 +119,7 @@ impl From<Activity> for BaseActivity {
             _ => ActivityType::unknown,
         };
 
+        let detectable = DETECABLES.get(&activity.name).cloned();
         let name = activity.name;
 
         let state = activity.state;
@@ -131,6 +133,7 @@ impl From<Activity> for BaseActivity {
             state,
             start_time: start_time.map(|time| time as u32),
             end_time: end_time.map(|time| time as u32),
+            detectable,
         }
     }
 }

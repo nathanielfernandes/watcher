@@ -22,7 +22,10 @@ use serenity::{
 use tokio::sync::mpsc::UnboundedReceiver;
 use tower_http::cors::CorsLayer;
 
+use crate::detectable::{Detectable, DETECABLES};
+
 pub mod activity;
+pub mod detectable;
 pub mod events;
 
 macro_rules! specta_buffer {
@@ -51,7 +54,7 @@ async fn main() {
     {
         println!("generating ts exports");
         let definitions = specta_buffer! {
-            ActivityType | Assets | BaseActivity | SpotifyActivity | DiscordActivity,
+            ActivityType | Assets | Detectable | BaseActivity | SpotifyActivity | DiscordActivity,
             ""
         };
         let path = std::path::Path::new("./ts/activity.ts");
@@ -66,6 +69,9 @@ async fn main() {
         file.write_all(definitions.as_bytes())
             .expect("failed to write file");
     }
+
+    // load detecables
+    let _ = *DETECABLES;
     println!("Starting up...");
 
     let state = AppState {
