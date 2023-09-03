@@ -11,6 +11,24 @@ pub enum DiscordActivity {
     Spotify { activity: SpotifyActivity },
 }
 
+impl DiscordActivity {
+    pub fn identifer(&self) -> &str {
+        match self {
+            DiscordActivity::Activity { activity } => {
+                activity.application_id.as_ref().unwrap_or(&activity.name)
+            }
+            DiscordActivity::Spotify { activity: _ } => "spotify",
+        }
+    }
+
+    pub fn start_time(&self) -> Option<u32> {
+        match self {
+            DiscordActivity::Activity { activity } => activity.start_time,
+            DiscordActivity::Spotify { activity } => Some(activity.start),
+        }
+    }
+}
+
 impl From<Activity> for DiscordActivity {
     fn from(activity: Activity) -> Self {
         if activity.name == "Spotify" {

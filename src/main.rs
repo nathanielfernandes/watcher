@@ -208,29 +208,23 @@ impl EventHandler for AppState {
 }
 
 // deduplicate DiscordActivity's keeping the newest one
-fn dedup_discord_activities(activities: Vec<DiscordActivity>) -> Vec<DiscordActivity> {
-    let mut seen: HashMap<String, Option<u32>> = HashMap::new();
-    activities
-        .into_iter()
-        .filter_map(|a| match a {
-            DiscordActivity::Activity { activity } => {
-                let identifier = activity.application_id.as_ref().unwrap_or(&activity.name);
+fn dedup_discord_activities(mut activities: Vec<DiscordActivity>) -> Vec<DiscordActivity> {
+    // remove all duplicate activities, keeping the newest one
+    let mut deduped: HashMap<String, DiscordActivity> = HashMap::with_capacity(activities.len());
 
-                if let Some(last_seen) = seen.get_mut(identifier) {
-                    if let Some(last_seen) = last_seen {
-                        if *last_seen < activity.start_time.unwrap_or_default() {
-                            *last_seen = activity.start_time.unwrap_or_default();
-                        } else {
-                            return None;
-                        }
-                    }
-                } else {
-                    seen.insert(identifier.clone(), activity.start_time);
-                }
+    for activity in activities.drain(..) {
+        let key = activity.identifer().to_string();
+        let start = activity.start_time().unwrap_or_default();
+        if let Some(found) = deduped.get_mut(&key) {
+            let found_start = found.start_time().unwrap_or_default();
 
-                Some(DiscordActivity::Activity { activity })
+            if start > found_start {
+                *found = activity
             }
-            _ => Some(a),
-        })
-        .collect()
+        } else {
+            deduped.insert(key, activity);
+        }
+    }
+
+    deduped.drain().map(|(_, v)| v).collect()
 }
