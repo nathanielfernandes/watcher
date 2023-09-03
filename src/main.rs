@@ -1,4 +1,4 @@
-use std::{convert::Infallible, env, io::Write};
+use std::{collections::HashMap, convert::Infallible, env, io::Write};
 
 use activity::{DiscordActivity, NoCopy};
 use async_stream::stream;
@@ -189,13 +189,15 @@ impl EventHandler for AppState {
 
         let user_id = presence.user.id.0;
 
-        let activites = presence
+        let activities = presence
             .activities
             .into_iter()
             .map(|a| a.into())
             .collect::<Vec<DiscordActivity>>();
 
-        let data = activites.imstr();
+        let activities = dedup_discord_activities(activities);
+
+        let data = activities.imstr();
 
         self.dispatcher.publish(user_id, data).await;
     }
@@ -203,4 +205,32 @@ impl EventHandler for AppState {
     async fn ready(&self, _: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
     }
+}
+
+// deduplicate DiscordActivity's keeping the newest one
+fn dedup_discord_activities(activities: Vec<DiscordActivity>) -> Vec<DiscordActivity> {
+    let mut seen: HashMap<String, Option<u32>> = HashMap::new();
+    activities
+        .into_iter()
+        .filter_map(|a| match a {
+            DiscordActivity::Activity { activity } => {
+                let identifier = activity.application_id.as_ref().unwrap_or(&activity.name);
+
+                if let Some(last_seen) = seen.get_mut(identifier) {
+                    if let Some(last_seen) = last_seen {
+                        if *last_seen < activity.start_time.unwrap_or_default() {
+                            *last_seen = activity.start_time.unwrap_or_default();
+                        } else {
+                            return None;
+                        }
+                    }
+                } else {
+                    seen.insert(identifier.clone(), activity.start_time);
+                }
+
+                Some(DiscordActivity::Activity { activity })
+            }
+            _ => Some(a),
+        })
+        .collect()
 }
