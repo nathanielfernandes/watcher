@@ -39,17 +39,14 @@ where
     }
 
     pub async fn publish(&self, event: T) {
-        // only read lock while pushing to subscribers
+        let mut inner = self.0.write().await;
         let mut not_ok = Vec::new();
-        for (i, tx) in self.0.read().await.subscribers.iter().enumerate() {
+        for (i, tx) in inner.subscribers.iter().enumerate() {
             if tx.send(event.clone()).is_err() {
                 not_ok.push(i);
             }
         }
 
-        // write lock to remove subscribers
-        // in reverse order to not invalidate indices
-        let mut inner = self.0.write().await;
         for i in not_ok.into_iter().rev() {
             inner.subscribers.swap_remove(i);
         }
